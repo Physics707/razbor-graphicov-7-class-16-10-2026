@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Графики движения — тренажёр с пошаговым разбором</title>
+<style>
+:root{--bg:#eef3f9;--card:#fff;--ink:#1b2540;--mut:#5a6682;--line:#d6deeb;--grid:#bcd3ea;--acc:#e8590c;--hl:#1971c2;--ok:#2b8a3e;--bad:#c92a2a;--soft:#f3f7fc}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1420;--card:#171d2c;--ink:#e7ebf6;--mut:#9aa5c0;--line:#2a3350;--grid:#2e4566;--acc:#ff922b;--hl:#74c0fc;--ok:#69db7c;--bad:#ff8787;--soft:#1d2538}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Segoe UI",system-ui,sans-serif}
+header,main{max-width:1180px;margin:0 auto;padding:0 18px}
+header{padding-top:28px}
+h1{font:700 clamp(1.5rem,3.4vw,2.2rem)/1.2 Georgia,"Times New Roman",serif;margin:0 0 6px}
+header p{margin:0;color:var(--mut);max-width:70ch}
+section{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:22px 0;padding:18px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px}
+h2{font:700 1.25rem/1.3 Georgia,serif;margin:0}
+.ctl{display:flex;gap:6px;align-items:center;color:var(--mut)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:6px 12px}
+button:hover{border-color:var(--hl)}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--hl);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:20px;align-items:start}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+figure{margin:0;position:sticky;top:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px}
+svg{display:block;width:100%;height:auto}
+.gl{stroke:var(--grid);stroke-width:1}.ax{stroke:var(--ink);stroke-width:2}.arw{fill:var(--ink)}
+.tk{fill:var(--ink);font:13px "Segoe UI",system-ui,sans-serif}.al{fill:var(--ink);font:italic 15px Georgia,serif}
+.seg{stroke:var(--acc);stroke-width:3.5;stroke-linecap:round;transition:stroke .2s,stroke-width .2s}
+.seg.hl{stroke:var(--hl);stroke-width:6.5}
+.pr{stroke:var(--acc);stroke-width:1.2;stroke-dasharray:4 3;opacity:.65}.pt{fill:var(--acc);stroke:var(--card);stroke-width:1.5}
+.lead{margin:0 0 12px;font-weight:600}
+.q{border-top:1px solid var(--line);padding:12px 0}
+.qh{display:flex;justify-content:space-between;gap:10px}.qh .sc{color:var(--mut);white-space:nowrap}
+.ans{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+input,select{font:inherit;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+input{width:84px}.res{font-weight:600}.res.ok{color:var(--ok)}.res.bad{color:var(--bad)}
+details{background:var(--soft);border-radius:8px;padding:8px 12px}
+summary{cursor:pointer;font-weight:600}
+ol{margin:8px 0 6px;padding-left:20px}li{margin:4px 0}
+.fin{margin:6px 0 2px;font-weight:700}
+footer{color:var(--mut);font-size:.9rem;padding:0 0 30px}
+@media print{.ctl,.ans,button{display:none}figure{position:static}body{background:#fff}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Графики движения: тренажёр с пошаговым разбором</h1>
+  <p>Каждый вариант строится заново: другие числа, масштаб и форма графика. Вопросы — те же типы, что в образцах. Откройте «Пошаговый разбор» — нужный участок подсветится на графике.</p>
+</header>
+<main>
+  <section id="A">
+    <div class="bar"><h2>Задание 1. Движение пешехода</h2>
+      <div class="ctl">Вариант № <b id="nA">1</b>
+        <button data-act="prev" aria-label="Предыдущий вариант">◀</button>
+        <button data-act="next" aria-label="Следующий вариант">▶</button>
+        <button data-act="rnd">Новый вариант</button></div></div>
+    <div class="grid"><figure id="gA"></figure><div id="qA"></div></div>
+  </section>
+  <section id="B">
+    <div class="bar"><h2>Задание 2. Задание с графиком</h2>
+      <div class="ctl">Вариант № <b id="nB">1</b>
+        <button data-act="prev" aria-label="Предыдущий вариант">◀</button>
+        <button data-act="next" aria-label="Следующий вариант">▶</button>
+        <button data-act="rnd">Новый вариант</button></div></div>
+    <div class="grid"><figure id="gB"></figure><div id="qB"></div></div>
+  </section>
+</main>
+<footer><main>Масштаб каждого графика указан по осям: одна клетка = число между соседними отметками. Пунктиром показаны проекции характерных точек на оси.</main></footer>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const rng=seed=>{let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}};
+const mk=r=>({int:(a,b)=>a+Math.floor(r()*(b-a+1)),pick:arr=>arr[Math.floor(r()*arr.length)],r});
+const f=n=>String(Math.round(n*100)/100).replace('.',',').replace('-','−');
+const num=s=>parseFloat(String(s).trim().replace(',','.').replace('−','-'));
+const same=(a,b)=>Math.abs(a-b)<0.011;
+
+/* ---------- SVG-график на клетчатой бумаге ---------- */
+function drawGraph(P,dt,dx,uid){
+  const cs=46,L=58,Tp=36,B=48,Rt=44;
+  const nT=Math.ceil(P.at(-1)[0]/dt)+1, nX=Math.ceil(Math.max(...P.map(p=>p[1]))/dx)+1;
+  const W=L+nT*cs+Rt, base=Tp+nX*cs, H=base+B;
+  const X=t=>L+t/dt*cs, Y=x=>base-x/dx*cs;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="График зависимости координаты от времени, клетка: ${dt} с по горизонтали, ${dx} м по вертикали"><defs><marker id="ar${uid}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10z" class="arw"/></marker></defs>`;
+  for(let i=0;i<=nT;i++)s+=`<line class="gl" x1="${L+i*cs}" y1="${Tp}" x2="${L+i*cs}" y2="${base}"/>`;
+  for(let j=0;j<=nX;j++)s+=`<line class="gl" x1="${L}" y1="${base-j*cs}" x2="${L+nT*cs}" y2="${base-j*cs}"/>`;
+  for(let i=1;i<=nT;i++)s+=`<text class="tk" x="${L+i*cs}" y="${base+20}" text-anchor="middle">${i*dt}</text>`;
+  for(let j=1;j<=nX;j++)s+=`<text class="tk" x="${L-10}" y="${base-j*cs+5}" text-anchor="end">${j*dx}</text>`;
+  s+=`<text class="tk" x="${L-10}" y="${base+20}" text-anchor="end">0</text>`;
+  s+=`<line class="ax" x1="${L}" y1="${base}" x2="${L+nT*cs+26}" y2="${base}" marker-end="url(#ar${uid})"/>`;
+  s+=`<line class="ax" x1="${L}" y1="${base}" x2="${L}" y2="${Tp-24}" marker-end="url(#ar${uid})"/>`;
+  s+=`<text class="al" x="${L+10}" y="${Tp-16}">x, м</text><text class="al" x="${L+nT*cs+6}" y="${base+36}">t, с</text>`;
+  P.forEach(([t,x])=>{
+    if(t>0)s+=`<line class="pr" x1="${X(t)}" y1="${Y(x)}" x2="${X(t)}" y2="${base}"/>`;
+    if(x>0)s+=`<line class="pr" x1="${X(t)}" y1="${Y(x)}" x2="${L}" y2="${Y(x)}"/>`;
+  });
+  for(let k=0;k<P.length-1;k++)s+=`<line class="seg" data-k="${k}" x1="${X(P[k][0])}" y1="${Y(P[k][1])}" x2="${X(P[k+1][0])}" y2="${Y(P[k+1][1])}"/>`;
+  P.forEach(([t,x])=>s+=`<circle class="pt" cx="${X(t)}" cy="${Y(x)}" r="4.5"/>`);
+  return s+`</svg><div style="text-align:center;color:var(--mut);font-size:.88rem">Одна клетка: по t — ${dt} с, по x — ${dx} м</div>`;
+}
+
+/* ---------- Задание 1: путь/координата пешехода ---------- */
+function genA(r){
+  const R=mk(r);
+  for(let i=0;i<500;i++){
+    const dt=R.pick([2,5]),dx=R.pick([5,10]);
+    const a=[R.int(1,2),R.int(2,3),R.int(1,2),R.int(1,2)];
+    const T=[0];a.forEach((c,j)=>T.push(T[j]+c*dt));
+    const x1=R.int(2,3)*dx, x3=x1+R.int(1,2)*dx;
+    const v1=x1/T[1], v4=x3/(T[4]-T[3]);
+    if(i<300&&!(Number.isInteger(v1)&&Number.isInteger(v4)))continue;
+    const P=[[0,0],[T[1],x1],[T[2],x1],[T[3],x3],[T[4],0]];
+    const opts=["покой","равномерное движение вдоль оси x (координата растёт)","равномерное движение против оси x (координата убывает)","неравномерное движение"];
+    const qs=[
+      {l:"a",pts:1,segs:[3],type:"choice",opts,ok:2,
+       t:`Определите вид движения в интервале времени ${T[3]}–${T[4]} секунд.`,
+       st:[`На интервале ${T[3]}–${T[4]} с график — наклонная прямая: координата изменяется равномерно, значит движение равномерное прямолинейное.`,
+           `Координата убывает от ${x3} м до 0 м, поэтому проекция скорости отрицательна: пешеход идёт против направления оси x, к началу отсчёта.`,
+           `Для проверки найдём скорость: |v| = (${x3} − 0) / (${T[4]} − ${T[3]}) = ${x3} / ${T[4]-T[3]} = ${f(v4)} м/с.`],
+       fin:`равномерное прямолинейное движение против оси x (v<sub>x</sub> = −${f(v4)} м/с).`},
+      {l:"b",pts:1,segs:[0],type:"num",unit:"м/с",ans:v1,
+       t:`Определите скорость пешехода в интервале времени 0–${T[1]} секунд.`,
+       st:[`Берём две точки участка 0–${T[1]} с: (0 с; 0 м) и (${T[1]} с; ${x1} м).`,`Участок — наклонная прямая вверх, значит v &gt; 0.`,`v = Δx / Δt = (${x1} − 0) / (${T[1]} − 0) = ${x1} / ${T[1]} = ${f(v1)} м/с.`],
+       fin:`v = ${f(v1)} м/с.`},
+      {l:"c",pts:2,segs:[0],type:"eq",a0:0,a1:v1,
+       t:`Напишите уравнение движения в интервале времени 0–${T[1]} секунд.`,
+       st:[`Общий вид уравнения равномерного движения: x = x<sub>0</sub> + v<sub>x</sub>·t.`,`Начальная координата: при t = 0 график выходит из начала координат, x<sub>0</sub> = 0 м.`,`Проекция скорости из пункта b): v<sub>x</sub> = ${f(v1)} м/с.`,`Подставляем: x = 0 + ${f(v1)}·t.`],
+       fin:`x = ${f(v1)}·t (x в метрах, t в секундах).`},
+      {l:"d",pts:1,segs:[1],type:"num",unit:"с",ans:T[2]-T[1],
+       t:`Найдите время, которое ушло на отдых пешехода.`,
+       st:[`Отдых — это покой: координата не меняется, на графике горизонтальный участок.`,`Он идёт от t = ${T[1]} с до t = ${T[2]} с.`,`Δt = ${T[2]} − ${T[1]} = ${T[2]-T[1]} с.`],
+       fin:`${T[2]-T[1]} с.`}
+    ];
+    return{P,dt,dx,qs,lead:"На рисунке изображён график зависимости координаты пешехода от времени движения."};
+  }
+}
+
+/* ---------- Задание 2: координата тела ---------- */
+function genB(r){
+  const R=mk(r);
+  for(let i=0;i<500;i++){
+    const dt=R.pick([1,2]),dx=5,up=r()<.6;
+    let x0,x1,x3;
+    if(up){x0=R.int(1,4)*dx;x1=R.int(x0/dx+2,8)*dx;x3=R.int(0,x1/dx-2)*dx}
+    else{x0=R.int(4,7)*dx;x1=R.int(1,x0/dx-2)*dx;x3=R.int(x1/dx+2,8)*dx}
+    const a=[R.int(1,3),R.int(1,3),R.int(2,4)];
+    const T=[0];a.forEach((c,j)=>T.push(T[j]+c*dt));
+    const v1=(x1-x0)/T[1], v3=(x3-x1)/(T[3]-T[2]);
+    if(i<300&&!(Number.isInteger(v1)&&Number.isInteger(v3)))continue;
+    const P=[[0,x0],[T[1],x1],[T[2],x1],[T[3],x3]];
+    const S=Math.abs(x1-x0)+Math.abs(x3-x1), dX=x3-x0;
+    const sg=v=>v<0?"уменьшается, значит проекция скорости отрицательна":"увеличивается, значит проекция скорости положительна";
+    const qs=[
+      {l:"a",pts:1,segs:[2],type:"num",unit:"м/с",ans:v3,
+       t:`Определите проекцию скорости тела в интервале времени ${T[2]}–${T[3]} с (с учётом знака).`,
+       st:[`Точки участка: (${T[2]} с; ${x1} м) и (${T[3]} с; ${x3} м).`,`Координата ${sg(v3)}.`,`v<sub>x</sub> = Δx / Δt = (${x3} − ${x1}) / (${T[3]} − ${T[2]}) = ${x3-x1} / ${T[3]-T[2]} = ${f(v3)} м/с.`],
+       fin:`v<sub>x</sub> = ${f(v3)} м/с.`},
+      {l:"b",pts:2,segs:[0],type:"eq",a0:x0,a1:v1,
+       t:`Напишите уравнение движения тела в интервале времени 0–${T[1]} с.`,
+       st:[`Общий вид: x = x<sub>0</sub> + v<sub>x</sub>·t.`,`Начальная координата — значение на оси x при t = 0: x<sub>0</sub> = ${x0} м.`,`Проекция скорости: v<sub>x</sub> = (${x1} − ${x0}) / (${T[1]} − 0) = ${f(v1)} м/с (${v1<0?"отрицательная":"положительная"}).`,`Подставляем: x = ${x0} ${v1<0?"−":"+"} ${f(abs(v1))}·t.`],
+       fin:`x = ${x0} + (${f(v1)})·t.`},
+      {l:"c",pts:1,segs:[0,1,2],type:"num",unit:"м",ans:S,
+       t:`Найдите путь, пройденный телом за ${T[3]} с.`,
+       st:[`Путь — длина траектории, он не бывает отрицательным и не уменьшается. Считаем по участкам.`,`0–${T[1]} с: |${x1} − ${x0}| = ${abs(x1-x0)} м.`,`${T[1]}–${T[2]} с: тело стоит, путь 0 м.`,`${T[2]}–${T[3]} с: |${x3} − ${x1}| = ${abs(x3-x1)} м.`,`S = ${abs(x1-x0)} + 0 + ${abs(x3-x1)} = ${S} м.`],
+       fin:`S = ${S} м.`},
+      {l:"d",pts:1,segs:[0,1,2],type:"num",unit:"м",ans:dX,
+       t:`Найдите проекцию перемещения тела за ${T[3]} с (с учётом знака).`,
+       st:[`Проекция перемещения зависит только от начала и конца: Δx = x<sub>кон</sub> − x<sub>нач</sub>.`,`При t = 0: x = ${x0} м; при t = ${T[3]} с: x = ${x3} м.`,`Δx = ${x3} − ${x0} = ${f(dX)} м.`,`Знак ${dX<0?"«минус»: тело в итоге сместилось против оси x":dX>0?"«плюс»: тело сместилось вдоль оси x":"нулевой: тело вернулось в начальную точку"}. Сравните с путём: S ≠ |Δx|, когда тело меняет направление.`],
+       fin:`Δx = ${f(dX)} м.`}
+    ];
+    return{P,dt,dx,qs,lead:"На рисунке изображён график зависимости координаты тела от времени."};
+  }
+}
+const abs=Math.abs;
+
+/* ---------- Отрисовка вопросов ---------- */
+function qHtml(q,i){
+  let inp="";
+  if(q.type==="num")inp=`<label>${q.l==="a"&&q.unit==="м/с"?"v<sub>x</sub>":q.l==="b"?"v":q.l==="c"?"S":q.l==="d"&&q.unit==="с"?"Δt":"Δx"} = <input inputmode="decimal" aria-label="Ответ"> ${q.unit}</label>`;
+  if(q.type==="eq")inp=`<label>x = <input data-e="0" inputmode="decimal" aria-label="x нулевое"> м + <input data-e="1" inputmode="decimal" aria-label="v"> м/с·t</label>`;
+  if(q.type==="choice")inp=`<select aria-label="Вид движения"><option value="">— выберите —</option>${q.opts.map((o,k)=>`<option value="${k}">${o}</option>`).join("")}</select>`;
+  return`<div class="q" data-i="${i}"><div class="qh"><span><b>${q.l})</b> ${q.t}</span><span class="sc">[${q.pts}]</span></div>
+  <div class="ans">${inp}<button class="chk">Проверить</button><span class="res" role="status"></span></div>
+  <details><summary>Пошаговый разбор</summary><ol>${q.st.map(s=>`<li>${s}</li>`).join("")}</ol><p class="fin">Ответ: ${q.fin}</p></details></div>`;
+}
+const state={},seeds={A:1,B:1},GEN={A:genA,B:genB};
+function render(k){
+  const v=state[k]=GEN[k](rng(seeds[k]*7919+k.charCodeAt(0)));
+  $(`#g${k}`).innerHTML=drawGraph(v.P,v.dt,v.dx,k);
+  $(`#q${k}`).innerHTML=`<p class="lead">${v.lead}</p>`+v.qs.map(qHtml).join("");
+  $(`#n${k}`).textContent=seeds[k];
+}
+function check(k,el){
+  const q=state[k].qs[el.dataset.i],res=el.querySelector(".res");let ok=false,empty=false;
+  if(q.type==="num"){const s=el.querySelector("input").value;empty=!s.trim();ok=same(num(s),q.ans)}
+  if(q.type==="eq"){const e=[...el.querySelectorAll("input")].map(i=>i.value);empty=e.some(s=>!s.trim());ok=same(num(e[0]),q.a0)&&same(num(e[1]),q.a1)}
+  if(q.type==="choice"){const s=el.querySelector("select").value;empty=s==="";ok=+s===q.ok}
+  res.className="res "+(empty?"":ok?"ok":"bad");
+  res.textContent=empty?"Введите ответ":ok?"✓ Верно":"✗ Не совпало — откройте разбор";
+}
+["A","B"].forEach(k=>{
+  render(k);
+  const sec=$("#"+k);
+  sec.addEventListener("click",e=>{
+    const b=e.target.closest("button");if(!b)return;
+    if(b.classList.contains("chk"))return check(k,b.closest(".q"));
+    const a=b.dataset.act;
+    seeds[k]=a==="next"?seeds[k]%9999+1:a==="prev"?(seeds[k]+9997)%9999+1:1+Math.floor(Math.random()*9999);
+    render(k);
+  });
+  sec.addEventListener("toggle",e=>{
+    const q=e.target.closest(".q");if(!q)return;
+    const segs=state[k].qs[q.dataset.i].segs;
+    sec.querySelectorAll(".seg").forEach(s=>s.classList.toggle("hl",e.target.open&&segs.includes(+s.dataset.k)));
+  },true);
+});
+</script>
+</body>
+</html>
